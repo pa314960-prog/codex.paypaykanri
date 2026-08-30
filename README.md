@@ -2,6 +2,10 @@
 
 PayPayアプリからダウンロードした取引履歴CSVを、ブラウザ内だけで整理・集計するビューアーです。
 
+## 公開サイト
+
+https://pa314960-prog.github.io/codex.paypaykanri/
+
 ## 主な機能
 
 - CSVのドラッグ＆ドロップ読み込み（UTF-8 / Shift_JIS）
@@ -18,3 +22,7 @@ CSVの内容はサーバーへ送信・保存されません。
 npm install
 npm run dev
 ```
+
+## GitHub Pages版
+
+`docs/`には、npmビルドやサーバーを必要としないプレーンHTML・CSS・JavaScript版があります。GitHub Pagesは`main`ブランチの`/docs`を公開元に設定します。

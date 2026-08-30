@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ff003c" />
+    <title>PayLog | PayPay CSV Viewer</title>
+    <meta name="description" content="PayPayの取引履歴CSVをブラウザだけで安全に整理・集計できるビューアー。" />
+    <meta property="og:title" content="PayLog | PayPay CSV Viewer" />
+    <meta property="og:description" content="PayPayの取引を、ひと目でわかりやすく。CSVはブラウザ内だけで安全に処理します。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://pa314960-prog.github.io/codex.paypaykanri/" />
+    <meta property="og:image" content="https://pa314960-prog.github.io/codex.paypaykanri/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="shell topbar-inner">
+        <a class="brand" href="./" aria-label="PayLog ホーム">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 7h15v10H4zM7 7V5h8v2M4 10h15M15 13h2" /></svg>
+          </span>
+          <span><strong>PayLog</strong><small>PAYPAY CSV VIEWER</small></span>
+        </a>
+        <div class="privacy-pill">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5zM12 14v2" /></svg>
+          <span>データは外部送信されません</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell main-content">
+      <section class="intro-grid" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">✦ かんたん家計チェック</p>
+          <h1 id="page-title">PayPayの取引を、<br />ひと目でわかりやすく。</h1>
+          <p class="lead">PayPayアプリからダウンロードしたCSVを読み込むと、支出・入金・月ごとの変化を自動で整理します。</p>
+        </div>
+        <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="PayPayのCSVファイルを選択">
+          <input id="fileInput" type="file" accept=".csv,text/csv" hidden />
+          <span class="drop-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v5h14v-5" /></svg>
+          </span>
+          <span class="drop-copy"><strong>CSVをここにドロップ</strong><small>UTF-8・Shift_JIS / 最大15MB</small></span>
+          <button id="fileButton" class="button primary" type="button">▤ ファイルを選ぶ</button>
+        </div>
+      </section>
+
+      <div id="errorBanner" class="error-banner" role="alert" hidden></div>
+
+      <section class="summary-section" aria-labelledby="summary-title">
+        <div class="section-heading">
+          <div>
+            <div class="heading-line"><h2 id="summary-title">取引サマリー</h2><span id="demoBadge" class="badge">サンプル表示</span></div>
+            <p id="fileStatus" class="status-line"><span aria-hidden="true">●</span> サンプルデータ・14件を読み込み</p>
+          </div>
+          <button id="replaceButton" class="button ghost" type="button">自分のCSVに入れ替える</button>
+        </div>
+
+        <div class="stats-grid">
+          <article class="card stat-card"><span class="stat-icon red" aria-hidden="true">↗</span><span class="stat-label">支出合計</span><strong id="outflowTotal" class="stat-value">￥0</strong><small id="outflowNote">0件の支払い</small></article>
+          <article class="card stat-card"><span class="stat-icon green" aria-hidden="true">↙</span><span class="stat-label">入金合計</span><strong id="inflowTotal" class="stat-value">￥0</strong><small>チャージ・受け取り・ポイント</small></article>
+          <article class="card stat-card"><span class="stat-icon" aria-hidden="true">◎</span><span class="stat-label">差し引き</span><strong id="balanceTotal" class="stat-value">￥0</strong><small>入金 − 支出</small></article>
+          <article class="card stat-card"><span class="stat-icon" aria-hidden="true">▣</span><span class="stat-label">対象取引</span><strong id="transactionCount" class="stat-value">0件</strong><small id="periodNote">すべての期間</small></article>
+        </div>
+      </section>
+
+      <section class="analysis-grid" aria-label="取引分析">
+        <article class="card panel">
+          <header class="card-header"><h2>月ごとのお金の動き</h2><p>直近6か月の支出と入金</p></header>
+          <div class="chart-wrap"><canvas id="monthlyChart" aria-label="月ごとの支出と入金の棒グラフ" role="img"></canvas></div>
+          <div class="legend"><span><i class="legend-red"></i>支出</span><span><i class="legend-green"></i>入金</span></div>
+        </article>
+
+        <article class="card panel">
+          <header class="card-header"><h2>支出の内訳</h2><p>取引内容ごとの割合</p></header>
+          <div id="breakdown" class="breakdown"></div>
+        </article>
+      </section>
+
+      <section class="card history-card" aria-labelledby="history-title">
+        <header class="history-header">
+          <div><h2 id="history-title">取引履歴</h2><p>店名や取引内容で絞り込めます</p></div>
+          <div class="filters">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="店名・内容を検索" aria-label="取引を検索" /></label>
+            <label><span class="sr-only">月で絞り込み</span><select id="monthSelect"><option value="all">すべての月</option></select></label>
+            <label><span class="sr-only">入出金で絞り込み</span><select id="flowSelect"><option value="all">すべて</option><option value="out">支出のみ</option><option value="in">入金のみ</option></select></label>
+          </div>
+        </header>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>取引日</th><th>取引先 / 内容</th><th>取引方法</th><th class="amount-col">金額</th></tr></thead>
+            <tbody id="transactionRows"></tbody>
+          </table>
+        </div>
+        <footer class="table-footer">
+          <p id="resultRange">0件中 0〜0件</p>
+          <div class="pagination"><button id="prevButton" class="page-button" type="button" aria-label="前のページ">‹</button><span id="pageStatus">1 / 1</span><button id="nextButton" class="page-button" type="button" aria-label="次のページ">›</button></div>
+        </footer>
+      </section>
+
+      <footer class="site-footer"><p>CSVはこのブラウザ内だけで処理され、保存・送信されません。</p><button id="demoButton" class="button ghost" type="button">サンプルに戻す</button></footer>
+    </main>
+  </body>
+</html>

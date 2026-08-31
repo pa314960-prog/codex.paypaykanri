@@ -87,6 +87,7 @@ const elements = {
   monthSelect: document.querySelector('#monthSelect'),
   flowSelect: document.querySelector('#flowSelect'),
   transactionRows: document.querySelector('#transactionRows'),
+  mobileFileButton: document.querySelector('#mobileFileButton'),
   resultRange: document.querySelector('#resultRange'),
   pageStatus: document.querySelector('#pageStatus'),
   prevButton: document.querySelector('#prevButton'),
@@ -459,6 +460,7 @@ elements.fileButton.addEventListener('click', (event) => {
   event.stopPropagation();
   elements.fileInput.click();
 });
+elements.mobileFileButton.addEventListener('click', () => elements.fileInput.click());
 elements.replaceButton.addEventListener('click', () => elements.fileInput.click());
 elements.dropZone.addEventListener('click', () => elements.fileInput.click());
 elements.dropZone.addEventListener('keydown', (event) => {

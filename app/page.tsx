@@ -229,7 +229,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen pb-16">
+    <main className="app-main min-h-screen pb-16">
       <header className="topbar">
         <div className="page-shell flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -282,7 +282,7 @@ export default function Home() {
           <Card className="chart-card">
             <CardHeader><CardTitle>月ごとのお金の動き</CardTitle><CardDescription>直近6か月の支出と入金</CardDescription></CardHeader>
             <CardContent>
-              <ChartContainer config={chartConfig} className="h-[260px] w-full aspect-auto">
+              <ChartContainer config={chartConfig} className="mobile-chart h-[260px] w-full aspect-auto">
                 <BarChart data={monthlyData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis dataKey="month" tickLine={false} axisLine={false} tickFormatter={(value) => `${String(value).slice(5)}月`} />
@@ -326,15 +326,15 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="px-0">
-              <Table>
-                <TableHeader><TableRow><TableHead className="pl-5">取引日</TableHead><TableHead>取引先 / 内容</TableHead><TableHead className="hidden md:table-cell">取引方法</TableHead><TableHead className="pr-5 text-right">金額</TableHead></TableRow></TableHeader>
+              <Table className="transaction-table">
+                <TableHeader><TableRow><TableHead className="pl-5">取引日</TableHead><TableHead>取引先 / 内容</TableHead><TableHead>取引方法</TableHead><TableHead className="pr-5 text-right">金額</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {visibleRows.length ? visibleRows.map((item) => (
-                    <TableRow key={`${item.id}-${item.date}`}>
-                      <TableCell className="pl-5 text-xs text-muted-foreground">{item.date}</TableCell>
-                      <TableCell><p className="max-w-[240px] truncate font-medium">{item.counterparty}</p><p className="text-xs text-muted-foreground">{item.content}</p></TableCell>
-                      <TableCell className="hidden text-xs text-muted-foreground md:table-cell">{item.method}</TableCell>
-                      <TableCell className={`pr-5 text-right font-mono font-semibold tabular-nums ${item.outflow > 0 ? 'text-foreground' : 'text-income'}`}>{item.outflow > 0 ? `−${yen.format(item.outflow)}` : `＋${yen.format(item.inflow)}`}</TableCell>
+                    <TableRow className="transaction-row" key={`${item.id}-${item.date}`}>
+                      <TableCell className="transaction-date pl-5 text-xs text-muted-foreground">{item.date}</TableCell>
+                      <TableCell className="transaction-merchant"><p className="max-w-[240px] truncate font-medium">{item.counterparty}</p><p className="text-xs text-muted-foreground">{item.content}</p></TableCell>
+                      <TableCell className="transaction-method text-xs text-muted-foreground">{item.method}</TableCell>
+                      <TableCell className={`transaction-amount pr-5 text-right font-mono font-semibold tabular-nums ${item.outflow > 0 ? 'text-foreground' : 'text-income'}`}>{item.outflow > 0 ? `−${yen.format(item.outflow)}` : `＋${yen.format(item.inflow)}`}</TableCell>
                     </TableRow>
                   )) : <TableRow><TableCell colSpan={4} className="h-28 text-center text-muted-foreground">条件に合う取引がありません</TableCell></TableRow>}
                 </TableBody>
@@ -348,6 +348,9 @@ export default function Home() {
         </section>
 
         <footer className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-border/70 pt-5 text-xs text-muted-foreground sm:flex-row"><p>CSVはこのブラウザ内だけで処理され、保存・送信されません。</p><Button variant="ghost" size="sm" onClick={showDemo} disabled={isDemo}>サンプルに戻す</Button></footer>
+      </div>
+      <div className="mobile-upload-bar">
+        <Button onClick={() => fileInput.current?.click()}><FileSpreadsheet data-icon="inline-start" /> CSVを読み込む</Button>
       </div>
     </main>
   );

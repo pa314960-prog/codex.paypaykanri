@@ -35,31 +35,9 @@ function makeTransaction(date, outflow, inflow, content, counterparty, method, i
   };
 }
 
-const sampleRows = [
-  ['2026/08/29 18:42', 1860, 0, '支払い', 'スーパーマーケット', 'PayPay残高'],
-  ['2026/08/27 07:36', 540, 0, '支払い', '駅前カフェ', 'PayPayクレジット'],
-  ['2026/08/25 12:04', 0, 120, 'ポイント付与', 'PayPayポイント', 'PayPayポイント'],
-  ['2026/08/23 20:15', 3280, 0, '支払い', '家電量販店', 'PayPay残高'],
-  ['2026/08/18 16:22', 1200, 0, '送る', '友だちへの送金', 'PayPayマネー'],
-  ['2026/08/11 09:08', 0, 10000, 'チャージ', '銀行口座', 'PayPay残高'],
-  ['2026/08/08 13:31', 780, 0, '支払い', 'コンビニ', 'PayPay残高'],
-  ['2026/07/30 19:12', 2650, 0, '支払い', 'レストラン', 'PayPayクレジット'],
-  ['2026/07/21 17:48', 0, 88, 'ポイント付与', 'PayPayポイント', 'PayPayポイント'],
-  ['2026/07/14 08:20', 430, 0, '支払い', 'コンビニ', 'PayPay残高'],
-  ['2026/06/28 14:10', 4980, 0, '支払い', 'スポーツ用品店', 'PayPayクレジット'],
-  ['2026/06/10 10:00', 0, 8000, 'チャージ', '銀行口座', 'PayPay残高'],
-  ['2026/05/18 18:35', 1620, 0, '支払い', 'ドラッグストア', 'PayPay残高'],
-  ['2026/04/09 12:18', 980, 0, '支払い', '書店', 'PayPay残高'],
-];
-
-const sampleTransactions = sampleRows.map((row, index) =>
-  makeTransaction(row[0], row[1], row[2], row[3], row[4], row[5], `sample-${index}`),
-);
-
 const state = {
-  transactions: sampleTransactions,
-  fileName: 'サンプルデータ',
-  demo: true,
+  transactions: [],
+  fileName: null,
   query: '',
   month: 'all',
   flow: 'all',
@@ -70,10 +48,8 @@ const state = {
 const elements = {
   fileInput: document.querySelector('#fileInput'),
   fileButton: document.querySelector('#fileButton'),
-  replaceButton: document.querySelector('#replaceButton'),
   dropZone: document.querySelector('#dropZone'),
   errorBanner: document.querySelector('#errorBanner'),
-  demoBadge: document.querySelector('#demoBadge'),
   fileStatus: document.querySelector('#fileStatus'),
   outflowTotal: document.querySelector('#outflowTotal'),
   outflowNote: document.querySelector('#outflowNote'),
@@ -87,12 +63,10 @@ const elements = {
   monthSelect: document.querySelector('#monthSelect'),
   flowSelect: document.querySelector('#flowSelect'),
   transactionRows: document.querySelector('#transactionRows'),
-  mobileFileButton: document.querySelector('#mobileFileButton'),
   resultRange: document.querySelector('#resultRange'),
   pageStatus: document.querySelector('#pageStatus'),
   prevButton: document.querySelector('#prevButton'),
   nextButton: document.querySelector('#nextButton'),
-  demoButton: document.querySelector('#demoButton'),
 };
 
 function parseNumber(value = '') {
@@ -135,7 +109,7 @@ function parseCsv(text) {
 }
 
 function normalizeHeader(value) {
-  return String(value).replace(/^\uFEFF/, '').replace(/[\s　]/g, '').toLowerCase();
+  return String(value).replace(/^﻿/, '').replace(/[\s　]/g, '').toLowerCase();
 }
 
 function transactionsFromCsv(text) {
@@ -341,7 +315,7 @@ function renderTable(filtered) {
 
   if (!rows.length) {
     const row = document.createElement('tr');
-    const cell = makeCell('no-results', '条件に合う取引がありません');
+    const cell = makeCell('no-results', state.fileName ? '条件に合う取引がありません' : 'CSVファイルをアップロードすると取引が表示されます');
     cell.colSpan = 4;
     row.append(cell);
     elements.transactionRows.append(row);
@@ -388,13 +362,14 @@ function renderMonthOptions() {
 function render() {
   const filtered = filteredTransactions();
   const totals = filtered.reduce((sum, item) => ({ outflow: sum.outflow + item.outflow, inflow: sum.inflow + item.inflow }), { outflow: 0, inflow: 0 });
-  elements.demoBadge.hidden = !state.demo;
-  elements.replaceButton.hidden = !state.demo;
-  elements.demoButton.disabled = state.demo;
   elements.fileStatus.replaceChildren();
-  const dot = document.createElement('span');
-  dot.textContent = '●';
-  elements.fileStatus.append(dot, ` ${state.fileName}・${state.transactions.length.toLocaleString('ja-JP')}件を読み込み`);
+  if (state.fileName) {
+    const dot = document.createElement('span');
+    dot.textContent = '●';
+    elements.fileStatus.append(dot, ` ${state.fileName}・${state.transactions.length.toLocaleString('ja-JP')}件を読み込み`);
+  } else {
+    elements.fileStatus.textContent = 'CSVファイルを選択してください';
+  }
   elements.outflowTotal.textContent = yen.format(totals.outflow);
   elements.outflowNote.textContent = `${filtered.filter((item) => item.outflow > 0).length}件の支払い`;
   elements.inflowTotal.textContent = yen.format(totals.inflow);
@@ -425,7 +400,6 @@ async function loadFile(file) {
   try {
     state.transactions = transactionsFromCsv(decodeCsv(await file.arrayBuffer()));
     state.fileName = file.name;
-    state.demo = false;
     state.query = '';
     state.month = 'all';
     state.flow = 'all';
@@ -441,27 +415,10 @@ async function loadFile(file) {
   }
 }
 
-function showDemo() {
-  state.transactions = sampleTransactions;
-  state.fileName = 'サンプルデータ';
-  state.demo = true;
-  state.query = '';
-  state.month = 'all';
-  state.flow = 'all';
-  state.page = 1;
-  elements.errorBanner.hidden = true;
-  elements.searchInput.value = '';
-  elements.flowSelect.value = 'all';
-  renderMonthOptions();
-  render();
-}
-
 elements.fileButton.addEventListener('click', (event) => {
   event.stopPropagation();
   elements.fileInput.click();
 });
-elements.mobileFileButton.addEventListener('click', () => elements.fileInput.click());
-elements.replaceButton.addEventListener('click', () => elements.fileInput.click());
 elements.dropZone.addEventListener('click', () => elements.fileInput.click());
 elements.dropZone.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' || event.key === ' ') {
@@ -503,7 +460,6 @@ elements.nextButton.addEventListener('click', () => {
   state.page += 1;
   render();
 });
-elements.demoButton.addEventListener('click', showDemo);
 
 new ResizeObserver(() => requestAnimationFrame(drawChart)).observe(elements.canvas.parentElement);
 renderMonthOptions();

@@ -19,30 +19,15 @@
 <body>
 <header class="topbar">
 <div class="shell topbar-inner">
-<a class="brand" href="./" aria-label="PayLog ホーム">
-<span class="brand-mark" aria-hidden="true">
-<svg viewBox="0 0 24 24"><path d="M4 7h15v10H4zM7 7V5h8v2M4 10h15M15 13h2" /></svg>
-</span>
-<span><strong>PayLog</strong><small>PAYPAY CSV VIEWER</small></span>
-</a>
+<span class="brand"><strong>管理者ページ</strong></span>
 <div class="topbar-actions">
 <a class="button" href="./view.html">閲覧用ページ</a>
-<div class="privacy-pill">
-<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5zM12 14v2" /></svg>
-<span>クラウドに保存されます</span>
-</div>
 </div>
 </div>
 </header>
 
 <main class="shell main-content">
-<section class="intro-grid" aria-labelledby="page-title">
-<div>
-<p class="eyebrow">✦ かんたん家計チェック</p>
-<h1 id="page-title">PayPayの取引を、<br />ひと目でわかりやすく。</h1>
-<p class="lead">PayPayアプリからダウンロードしたCSVを読み込むと、支出・入金・月ごとの変化を自動で整理してクラウドに保存します。<a href="./view.html">閲覧用ページ</a>を家族に共有すれば、内容を見てもらえます。</p>
-</div>
-<div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="PayPayのCSVファイルを選択">
+<div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="PayPayのCSVファイルを選択" style="margin-bottom:24px">
 <input id="fileInput" type="file" accept=".csv,text/csv" hidden />
 <span class="drop-icon" aria-hidden="true">
 <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v5h14v-5" /></svg>
@@ -50,7 +35,6 @@
 <span class="drop-copy"><strong>CSVをここにドロップ</strong><small>UTF-8・Shift_JIS / 最大15MB</small></span>
 <button id="fileButton" class="button primary" type="button">▤ ファイルを選ぶ</button>
 </div>
-</section>
 
 <div id="errorBanner" class="error-banner" role="alert" hidden></div>
 

@@ -14,7 +14,7 @@
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="./styles.css?v=2" />
-  <script type="module" src="./app.js"></script>
+<script type="module" src="./app.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -40,28 +40,15 @@
 <div>
 <p class="eyebrow">✦ かんたん家計チェック</p>
 <h1 id="page-title">PayPayの取引を、<br />ひと目でわかりやすく。</h1>
-<p class="lead">PayPayアプリからダウンロードしたCSVを読み込むと、支出・入金・月ごとの変化を自動で整理してクラウドに保存します。<a href="./view.html">閲覧用ページ</a>を家族に共有すれば、ログインなしで内容を見てもらえます。</p>
+<p class="lead">PayPayアプリからダウンロードしたCSVを読み込むと、支出・入金・月ごとの変化を自動で整理してクラウドに保存します。<a href="./view.html">閲覧用ページ</a>を家族に共有すれば、内容を見てもらえます。</p>
 </div>
-<div id="authArea">
-<div id="signInPrompt" class="drop-zone">
-<span class="drop-icon" aria-hidden="true">
-<svg viewBox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5zM12 14v2" /></svg>
-</span>
-<span class="drop-copy"><strong>Googleでログイン</strong><small>取引データを追加できるのはご本人のみです</small></span>
-<button id="signInButton" class="button primary" type="button">Googleでログイン</button>
-</div>
-<div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="PayPayのCSVファイルを選択" hidden>
+<div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="PayPayのCSVファイルを選択">
 <input id="fileInput" type="file" accept=".csv,text/csv" hidden />
 <span class="drop-icon" aria-hidden="true">
 <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v5h14v-5" /></svg>
 </span>
 <span class="drop-copy"><strong>CSVをここにドロップ</strong><small>UTF-8・Shift_JIS / 最大15MB</small></span>
 <button id="fileButton" class="button primary" type="button">▤ ファイルを選ぶ</button>
-</div>
-<div id="userStatus" class="user-status" hidden>
-<span id="userEmail"></span>
-<button id="signOutButton" class="button" type="button">ログアウト</button>
-</div>
 </div>
 </section>
 
@@ -117,7 +104,7 @@
 </footer>
 </section>
 
-<footer class="site-footer"><p>取引データはFirebase（ご自身のクラウドプロジェクト）に保存され、閲覧用ページのリンクを知っている人が見られます。</p></footer>
+<footer class="site-footer"><p>取引データはFirebase（クラウド）に保存され、閲覧用ページのリンクを知っている人が見られます。</p></footer>
 </main>
 </body>
 </html>

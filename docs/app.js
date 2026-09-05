@@ -1,12 +1,9 @@
 'use strict';
 
-import { db, auth, googleProvider } from './firebase-config.js';
+import { db } from './firebase-config.js';
 import {
   collection, doc, getDocs, writeBatch, onSnapshot,
 } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
-import {
-  signInWithPopup, signOut, onAuthStateChanged,
-} from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
 import {
   yen, filteredTransactions, drawChart, renderBreakdown, renderTable, renderMonthOptions,
 } from './shared.js';
@@ -53,11 +50,6 @@ const elements = {
   fileInput: document.querySelector('#fileInput'),
   fileButton: document.querySelector('#fileButton'),
   dropZone: document.querySelector('#dropZone'),
-  signInPrompt: document.querySelector('#signInPrompt'),
-  signInButton: document.querySelector('#signInButton'),
-  userStatus: document.querySelector('#userStatus'),
-  userEmail: document.querySelector('#userEmail'),
-  signOutButton: document.querySelector('#signOutButton'),
   errorBanner: document.querySelector('#errorBanner'),
   fileStatus: document.querySelector('#fileStatus'),
   outflowTotal: document.querySelector('#outflowTotal'),
@@ -234,29 +226,6 @@ onSnapshot(transactionsCol, (snapshot) => {
 }, (error) => {
   showError(`クラウドからの読み込みに失敗しました: ${error.message}`);
 });
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    elements.signInPrompt.hidden = true;
-    elements.dropZone.hidden = false;
-    elements.userStatus.hidden = false;
-    elements.userEmail.textContent = `${user.displayName || user.email} でログイン中`;
-  } else {
-    elements.signInPrompt.hidden = false;
-    elements.dropZone.hidden = true;
-    elements.userStatus.hidden = true;
-  }
-});
-
-elements.signInButton.addEventListener('click', async () => {
-  try {
-    await signInWithPopup(auth, googleProvider);
-  } catch (error) {
-    showError(`ログインに失敗しました: ${error.message}`);
-  }
-});
-
-elements.signOutButton.addEventListener('click', () => signOut(auth));
 
 async function loadFile(file) {
   if (!file) return;

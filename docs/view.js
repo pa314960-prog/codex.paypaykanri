@@ -12,7 +12,7 @@ const state = {
   month: 'all',
   flow: 'all',
   page: 1,
-  pageSize: 8,
+  pageSize:100,
 };
 
 const elements = {

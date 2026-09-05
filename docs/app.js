@@ -1,10 +1,15 @@
 'use strict';
 
-const yen = new Intl.NumberFormat('ja-JP', {
-  style: 'currency',
-  currency: 'JPY',
-  maximumFractionDigits: 0,
-});
+import { db, auth, googleProvider } from './firebase-config.js';
+import {
+  collection, doc, getDocs, writeBatch, onSnapshot,
+} from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+import {
+  signInWithPopup, signOut, onAuthStateChanged,
+} from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js';
+import {
+  yen, filteredTransactions, drawChart, renderBreakdown, renderTable, renderMonthOptions,
+} from './shared.js';
 
 function parseDate(value) {
   const cleaned = String(value || '').trim().replace(/-/g, '/');
@@ -37,7 +42,6 @@ function makeTransaction(date, outflow, inflow, content, counterparty, method, i
 
 const state = {
   transactions: [],
-  fileName: null,
   query: '',
   month: 'all',
   flow: 'all',
@@ -49,6 +53,11 @@ const elements = {
   fileInput: document.querySelector('#fileInput'),
   fileButton: document.querySelector('#fileButton'),
   dropZone: document.querySelector('#dropZone'),
+  signInPrompt: document.querySelector('#signInPrompt'),
+  signInButton: document.querySelector('#signInButton'),
+  userStatus: document.querySelector('#userStatus'),
+  userEmail: document.querySelector('#userEmail'),
+  signOutButton: document.querySelector('#signOutButton'),
   errorBanner: document.querySelector('#errorBanner'),
   fileStatus: document.querySelector('#fileStatus'),
   outflowTotal: document.querySelector('#outflowTotal'),
@@ -168,223 +177,86 @@ function decodeCsv(buffer) {
   }
 }
 
-function filteredTransactions() {
-  const keyword = state.query.trim().toLowerCase();
-  return state.transactions.filter((item) => {
-    const matchesKeyword = !keyword || [item.counterparty, item.content, item.method, item.number]
-      .join(' ')
-      .toLowerCase()
-      .includes(keyword);
-    const matchesMonth = state.month === 'all' || item.month === state.month;
-    const matchesFlow = state.flow === 'all' || (state.flow === 'out' ? item.outflow > 0 : item.inflow > 0);
-    return matchesKeyword && matchesMonth && matchesFlow;
-  });
-}
-
-function monthlyData() {
-  const grouped = new Map();
-  state.transactions.forEach((item) => {
-    const current = grouped.get(item.month) || { month: item.month, outflow: 0, inflow: 0 };
-    current.outflow += item.outflow;
-    current.inflow += item.inflow;
-    grouped.set(item.month, current);
-  });
-  return Array.from(grouped.values()).sort((a, b) => a.month.localeCompare(b.month)).slice(-6);
-}
-
-function drawChart() {
-  const canvas = elements.canvas;
-  const rect = canvas.getBoundingClientRect();
-  if (!rect.width || !rect.height) return;
-  const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  canvas.width = Math.round(rect.width * ratio);
-  canvas.height = Math.round(rect.height * ratio);
-  const ctx = canvas.getContext('2d');
-  ctx.scale(ratio, ratio);
-
-  const width = rect.width;
-  const height = rect.height;
-  const padding = { top: 14, right: 12, bottom: 32, left: 48 };
-  const plotWidth = width - padding.left - padding.right;
-  const plotHeight = height - padding.top - padding.bottom;
-  const data = monthlyData();
-  const maxValue = Math.max(1, ...data.flatMap((item) => [item.outflow, item.inflow]));
-  const roundedMax = Math.ceil(maxValue / 5000) * 5000 || 5000;
-
-  ctx.clearRect(0, 0, width, height);
-  ctx.font = '10px "Yu Gothic UI", sans-serif';
-  ctx.textBaseline = 'middle';
-
-  for (let step = 0; step <= 4; step += 1) {
-    const y = padding.top + (plotHeight * step) / 4;
-    const value = roundedMax - (roundedMax * step) / 4;
-    ctx.strokeStyle = '#e7e9ed';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(width - padding.right, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#7a8290';
-    ctx.textAlign = 'right';
-    const label = value >= 10000 ? `${Math.round(value / 10000)}万` : String(Math.round(value));
-    ctx.fillText(label, padding.left - 8, y);
-  }
-
-  const groupWidth = plotWidth / Math.max(data.length, 1);
-  const barWidth = Math.min(23, Math.max(7, groupWidth * 0.22));
-  data.forEach((item, index) => {
-    const center = padding.left + groupWidth * index + groupWidth / 2;
-    const values = [
-      { value: item.outflow, color: '#ff003c', x: center - barWidth - 2 },
-      { value: item.inflow, color: '#189d72', x: center + 2 },
-    ];
-    values.forEach((bar) => {
-      const barHeight = (bar.value / roundedMax) * plotHeight;
-      const y = padding.top + plotHeight - barHeight;
-      ctx.fillStyle = bar.color;
-      ctx.beginPath();
-      const radius = Math.min(5, barWidth / 2, barHeight);
-      ctx.roundRect(bar.x, y, barWidth, barHeight, [radius, radius, 0, 0]);
-      ctx.fill();
-    });
-    ctx.fillStyle = '#747c89';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${item.month.slice(5)}月`, center, height - 13);
-  });
-}
-
-function renderBreakdown(filtered) {
-  const grouped = new Map();
-  filtered.forEach((item) => {
-    if (item.outflow > 0) grouped.set(item.content, (grouped.get(item.content) || 0) + item.outflow);
-  });
-  const entries = Array.from(grouped.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  elements.breakdown.replaceChildren();
-  if (!entries.length) {
-    const note = document.createElement('p');
-    note.className = 'empty-note';
-    note.textContent = '支出データがありません';
-    elements.breakdown.append(note);
-    return;
-  }
-
-  const total = entries.reduce((sum, entry) => sum + entry[1], 0) || 1;
-  const colors = ['#ff003c', '#f59e0b', '#3b82f6', '#8b5cf6'];
-  entries.forEach(([label, amount], index) => {
-    const percent = Math.round((amount / total) * 100);
-    const row = document.createElement('div');
-    row.className = 'breakdown-row';
-    const dot = document.createElement('span');
-    dot.className = 'breakdown-dot';
-    dot.style.background = colors[index];
-    const labelElement = document.createElement('span');
-    labelElement.className = 'breakdown-label';
-    labelElement.textContent = label;
-    const amountElement = document.createElement('span');
-    amountElement.className = 'breakdown-amount';
-    amountElement.textContent = yen.format(amount);
-    const progress = document.createElement('span');
-    progress.className = 'progress';
-    const fill = document.createElement('span');
-    fill.style.width = `${percent}%`;
-    fill.style.background = colors[index];
-    progress.append(fill);
-    const percentElement = document.createElement('small');
-    percentElement.className = 'breakdown-percent';
-    percentElement.textContent = `${percent}%`;
-    row.append(dot, labelElement, amountElement, progress, percentElement);
-    elements.breakdown.append(row);
-  });
-}
-
-function makeCell(className, text) {
-  const cell = document.createElement('td');
-  cell.className = className;
-  cell.textContent = text;
-  return cell;
-}
-
-function renderTable(filtered) {
-  const totalPages = Math.max(1, Math.ceil(filtered.length / state.pageSize));
-  state.page = Math.min(state.page, totalPages);
-  const start = (state.page - 1) * state.pageSize;
-  const rows = filtered.slice(start, start + state.pageSize);
-  elements.transactionRows.replaceChildren();
-
-  if (!rows.length) {
-    const row = document.createElement('tr');
-    const cell = makeCell('no-results', state.fileName ? '条件に合う取引がありません' : 'CSVファイルをアップロードすると取引が表示されます');
-    cell.colSpan = 4;
-    row.append(cell);
-    elements.transactionRows.append(row);
-  } else {
-    rows.forEach((item) => {
-      const row = document.createElement('tr');
-      row.append(makeCell('date-cell', item.date));
-      const merchantCell = document.createElement('td');
-      merchantCell.className = 'merchant-cell';
-      const merchant = document.createElement('strong');
-      merchant.textContent = item.counterparty;
-      const content = document.createElement('small');
-      content.textContent = item.content;
-      merchantCell.append(merchant, content);
-      row.append(merchantCell);
-      row.append(makeCell('method-cell', item.method));
-      const amount = makeCell(`amount-cell${item.outflow > 0 ? '' : ' income'}`, item.outflow > 0 ? `−${yen.format(item.outflow)}` : `＋${yen.format(item.inflow)}`);
-      row.append(amount);
-      elements.transactionRows.append(row);
-    });
-  }
-
-  const from = filtered.length ? start + 1 : 0;
-  const to = Math.min(start + state.pageSize, filtered.length);
-  elements.resultRange.textContent = `${filtered.length.toLocaleString('ja-JP')}件中 ${from}〜${to}件`;
-  elements.pageStatus.textContent = `${state.page} / ${totalPages}`;
-  elements.prevButton.disabled = state.page <= 1;
-  elements.nextButton.disabled = state.page >= totalPages;
-}
-
-function renderMonthOptions() {
-  const months = Array.from(new Set(state.transactions.map((item) => item.month))).sort().reverse();
-  const first = elements.monthSelect.firstElementChild;
-  elements.monthSelect.replaceChildren(first);
-  months.forEach((month) => {
-    const option = document.createElement('option');
-    option.value = month;
-    option.textContent = `${month.replace('-', '年')}月`;
-    elements.monthSelect.append(option);
-  });
-  elements.monthSelect.value = state.month;
+function showError(message) {
+  elements.errorBanner.textContent = message;
+  elements.errorBanner.hidden = false;
 }
 
 function render() {
-  const filtered = filteredTransactions();
+  const filtered = filteredTransactions(state.transactions, state);
   const totals = filtered.reduce((sum, item) => ({ outflow: sum.outflow + item.outflow, inflow: sum.inflow + item.inflow }), { outflow: 0, inflow: 0 });
-  elements.fileStatus.replaceChildren();
-  if (state.fileName) {
-    const dot = document.createElement('span');
-    dot.textContent = '●';
-    elements.fileStatus.append(dot, ` ${state.fileName}・${state.transactions.length.toLocaleString('ja-JP')}件を読み込み`);
-  } else {
-    elements.fileStatus.textContent = 'CSVファイルを選択してください';
-  }
+  elements.fileStatus.textContent = state.transactions.length
+    ? `● クラウドの取引データ・${state.transactions.length.toLocaleString('ja-JP')}件を読み込み`
+    : 'まだ取引データがありません。CSVをアップロードしてください。';
   elements.outflowTotal.textContent = yen.format(totals.outflow);
   elements.outflowNote.textContent = `${filtered.filter((item) => item.outflow > 0).length}件の支払い`;
   elements.inflowTotal.textContent = yen.format(totals.inflow);
   elements.balanceTotal.textContent = yen.format(totals.inflow - totals.outflow);
   elements.transactionCount.textContent = `${filtered.length.toLocaleString('ja-JP')}件`;
   elements.periodNote.textContent = state.month === 'all' ? 'すべての期間' : `${state.month.replace('-', '年')}月`;
-  renderBreakdown(filtered);
-  renderTable(filtered);
-  requestAnimationFrame(drawChart);
+  renderBreakdown(elements.breakdown, filtered);
+  renderTable(
+    elements,
+    state,
+    filtered,
+    state.transactions.length ? '条件に合う取引がありません' : 'CSVファイルをアップロードすると取引が表示されます',
+  );
+  requestAnimationFrame(() => drawChart(elements.canvas, state.transactions));
 }
 
-function showError(message) {
-  elements.errorBanner.textContent = message;
-  elements.errorBanner.hidden = false;
+const transactionsCol = collection(db, 'transactions');
+
+function chunk(array, size) {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) result.push(array.slice(i, i + size));
+  return result;
 }
+
+async function syncToFirestore(transactions) {
+  const existing = await getDocs(transactionsCol);
+  for (const group of chunk(existing.docs, 400)) {
+    const batch = writeBatch(db);
+    group.forEach((docSnapshot) => batch.delete(docSnapshot.ref));
+    await batch.commit();
+  }
+  for (const group of chunk(transactions, 400)) {
+    const batch = writeBatch(db);
+    group.forEach((item) => batch.set(doc(transactionsCol), item));
+    await batch.commit();
+  }
+}
+
+onSnapshot(transactionsCol, (snapshot) => {
+  state.transactions = snapshot.docs.map((docSnapshot) => docSnapshot.data()).sort((a, b) => b.timestamp - a.timestamp);
+  state.page = 1;
+  renderMonthOptions(elements.monthSelect, state.transactions, state.month);
+  render();
+}, (error) => {
+  showError(`クラウドからの読み込みに失敗しました: ${error.message}`);
+});
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    elements.signInPrompt.hidden = true;
+    elements.dropZone.hidden = false;
+    elements.userStatus.hidden = false;
+    elements.userEmail.textContent = `${user.displayName || user.email} でログイン中`;
+  } else {
+    elements.signInPrompt.hidden = false;
+    elements.dropZone.hidden = true;
+    elements.userStatus.hidden = true;
+  }
+});
+
+elements.signInButton.addEventListener('click', async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    showError(`ログインに失敗しました: ${error.message}`);
+  }
+});
+
+elements.signOutButton.addEventListener('click', () => signOut(auth));
 
 async function loadFile(file) {
   if (!file) return;
@@ -398,16 +270,8 @@ async function loadFile(file) {
     return;
   }
   try {
-    state.transactions = transactionsFromCsv(decodeCsv(await file.arrayBuffer()));
-    state.fileName = file.name;
-    state.query = '';
-    state.month = 'all';
-    state.flow = 'all';
-    state.page = 1;
-    elements.searchInput.value = '';
-    elements.flowSelect.value = 'all';
-    renderMonthOptions();
-    render();
+    const transactions = transactionsFromCsv(decodeCsv(await file.arrayBuffer()));
+    await syncToFirestore(transactions);
   } catch (error) {
     showError(error instanceof Error ? error.message : 'CSVを読み込めませんでした。');
   } finally {
@@ -461,6 +325,5 @@ elements.nextButton.addEventListener('click', () => {
   render();
 });
 
-new ResizeObserver(() => requestAnimationFrame(drawChart)).observe(elements.canvas.parentElement);
-renderMonthOptions();
+new ResizeObserver(() => requestAnimationFrame(() => drawChart(elements.canvas, state.transactions))).observe(elements.canvas.parentElement);
 render();

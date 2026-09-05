@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#ff003c" />
 <title>PayLog | PayPay CSV Viewer</title>
-<meta name="description" content="PayPayの取引履歴CSVをブラウザだけで安全に整理・集計できるビューアー。" />
+<meta name="description" content="PayPayの取引履歴CSVを整理・集計し、家族と共有できるビューアー。" />
 <meta property="og:title" content="PayLog | PayPay CSV Viewer" />
-<meta property="og:description" content="PayPayの取引を、ひと目でわかりやすく。CSVはブラウザ内だけで安全に処理します。" />
+<meta property="og:description" content="PayPayの取引を、ひと目でわかりやすく。クラウドに保存して閲覧用リンクで共有できます。" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://pa314960-prog.github.io/codex.paypaykanri/" />
 <meta property="og:image" content="https://pa314960-prog.github.io/codex.paypaykanri/og.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="./styles.css" />
-<script src="./app.js" defer></script>
+<script type="module" src="./app.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -25,9 +25,12 @@
 </span>
 <span><strong>PayLog</strong><small>PAYPAY CSV VIEWER</small></span>
 </a>
+<div class="topbar-actions">
+<a class="button" href="./view.html">閲覧用ページ</a>
 <div class="privacy-pill">
 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5zM12 14v2" /></svg>
-<span>データは外部送信されません</span>
+<span>クラウドに保存されます</span>
+</div>
 </div>
 </div>
 </header>
@@ -37,15 +40,28 @@
 <div>
 <p class="eyebrow">✦ かんたん家計チェック</p>
 <h1 id="page-title">PayPayの取引を、<br />ひと目でわかりやすく。</h1>
-<p class="lead">PayPayアプリからダウンロードしたCSVを読み込むと、支出・入金・月ごとの変化を自動で整理します。</p>
+<p class="lead">PayPayアプリからダウンロードしたCSVを読み込むと、支出・入金・月ごとの変化を自動で整理してクラウドに保存します。<a href="./view.html">閲覧用ページ</a>を家族に共有すれば、ログインなしで内容を見てもらえます。</p>
 </div>
-<div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="PayPayのCSVファイルを選択">
+<div id="authArea">
+<div id="signInPrompt" class="drop-zone">
+<span class="drop-icon" aria-hidden="true">
+<svg viewBox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5zM12 14v2" /></svg>
+</span>
+<span class="drop-copy"><strong>Googleでログイン</strong><small>取引データを追加できるのはご本人のみです</small></span>
+<button id="signInButton" class="button primary" type="button">Googleでログイン</button>
+</div>
+<div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="PayPayのCSVファイルを選択" hidden>
 <input id="fileInput" type="file" accept=".csv,text/csv" hidden />
 <span class="drop-icon" aria-hidden="true">
 <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v5h14v-5" /></svg>
 </span>
 <span class="drop-copy"><strong>CSVをここにドロップ</strong><small>UTF-8・Shift_JIS / 最大15MB</small></span>
 <button id="fileButton" class="button primary" type="button">▤ ファイルを選ぶ</button>
+</div>
+<div id="userStatus" class="user-status" hidden>
+<span id="userEmail"></span>
+<button id="signOutButton" class="button" type="button">ログアウト</button>
+</div>
 </div>
 </section>
 
@@ -55,7 +71,7 @@
 <div class="section-heading">
 <div>
 <div class="heading-line"><h2 id="summary-title">取引サマリー</h2></div>
-<p id="fileStatus" class="status-line">CSVファイルを選択してください</p>
+<p id="fileStatus" class="status-line">読み込み中...</p>
 </div>
 </div>
 
@@ -101,7 +117,7 @@
 </footer>
 </section>
 
-<footer class="site-footer"><p>CSVはこのブラウザ内だけで処理され、保存・送信されません。</p></footer>
+<footer class="site-footer"><p>取引データはFirebase（ご自身のクラウドプロジェクト）に保存され、閲覧用ページのリンクを知っている人が見られます。</p></footer>
 </main>
 </body>
 </html>
